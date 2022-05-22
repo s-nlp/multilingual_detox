@@ -109,11 +109,19 @@ Citation for Russian data:
 ## Results
 
 Main results are depicted in this table below.
- 
-![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/main_table.png)
+
+<p align="center">
+  <img width="460" height="300" src="https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/main_table.png">
+</p>
+
+<!-- ![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/main_table.png) -->
 
 Here are some examples of generated text.
-![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/generation.png)
+<!-- ![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/generation.png) -->
+
+<p align="center">
+  <img width="460" height="300" src="https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/generation.png">
+</p>
 
 ## Citation
 
