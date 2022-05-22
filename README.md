@@ -72,7 +72,7 @@ python evaluate_ru.py \
 
 For English we use ParaDetox parallel detoxification corpora, please, cite the original [paper](https://aclanthology.org/2022.acl-long.469/) and proceed to the original ParaDetox [repository](https://github.com/skoltech-nlp/paradetox) for details. For Russian we use RuDetox corpora from [RuSSE Detoxification Competition](https://russe.nlpub.org/2022/tox/), please cite the competition if you are going to use the data.
 
-Citation for English:
+Citation for English data:
 ```
 @inproceedings{logacheva-etal-2022-paradetox,
     title = "{P}ara{D}etox: Detoxification with Parallel Data",
@@ -95,7 +95,7 @@ Citation for English:
 }
 ```
 
-Citation for Russian:
+Citation for Russian data:
 
 ```
 @article{russe2022detoxification,
@@ -108,7 +108,8 @@ Citation for Russian:
 
 ## Results
 
-Main results are depicted in this table below. 
+Main results are depicted in this table below.
+ 
 ![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/main_table.png)
 
 Here are some examples of generated text.
