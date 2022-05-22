@@ -17,9 +17,7 @@ def prepare_target_label(model, target_label):
         pass
     elif target_label in model.config.label2id:
         target_label = model.config.label2id.get(target_label)
-    elif (
-        target_label.isnumeric() and int(target_label) in model.config.id2label
-    ):
+    elif target_label.isnumeric() and int(target_label) in model.config.id2label:
         target_label = int(target_label)
     else:
         raise ValueError(
@@ -48,11 +46,7 @@ def classify_texts(
         if second_texts is not None:
             inputs.append(second_texts[i : i + batch_size])
         inputs = tokenizer(
-            *inputs,
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=512,
+            *inputs, return_tensors="pt", padding=True, truncation=True, max_length=512,
         ).to(model.device)
         with torch.no_grad():
             try:
@@ -126,9 +120,7 @@ def evaluate_meaning(
         elif aggregation == "f1":
             scores = 2 * reverse_scores * scores / (reverse_scores + scores)
         else:
-            raise ValueError(
-                'aggregation should be one of "mean", "prod", "f1"'
-            )
+            raise ValueError('aggregation should be one of "mean", "prod", "f1"')
     return scores
 
 
@@ -147,20 +139,13 @@ def encode_cls(texts, model, tokenizer, batch_size=32, verbose=False):
                 ).to(model.device)
             )
             embeddings = out.pooler_output
-            embeddings = (
-                torch.nn.functional.normalize(embeddings).cpu().numpy()
-            )
+            embeddings = torch.nn.functional.normalize(embeddings).cpu().numpy()
             results.append(embeddings)
     return np.concatenate(results)
 
 
 def evaluate_cosine_similarity(
-    model,
-    tokenizer,
-    original_texts,
-    rewritten_texts,
-    batch_size=32,
-    verbose=False,
+    model, tokenizer, original_texts, rewritten_texts, batch_size=32, verbose=False,
 ):
     scores = (
         encode_cls(
@@ -181,9 +166,7 @@ def evaluate_cosine_similarity(
     return scores
 
 
-def evaluate_cola(
-    model, tokenizer, texts, target_label=1, batch_size=32, verbose=False
-):
+def evaluate_cola(model, tokenizer, texts, target_label=1, batch_size=32, verbose=False):
     target_label = prepare_target_label(model, target_label)
     scores = classify_texts(
         model,
@@ -305,18 +288,14 @@ def evaluate_style_transfer(
     if fluency_calibration:
         fluency = fluency_calibration(fluency)
     joint = accuracy * similarity * fluency
-    if verbose and (
-        style_calibration or meaning_calibration or fluency_calibration
-    ):
+    if verbose and (style_calibration or meaning_calibration or fluency_calibration):
         print("Scores after calibration:")
         print(f"Style accuracy:       {np.mean(accuracy)}")
         print(f"Meaning preservation: {np.mean(similarity)}")
         print(f"Joint fluency:        {np.mean(fluency)}")
         print(f"Joint score:          {np.mean(joint)}")
 
-    result = dict(
-        accuracy=accuracy, similarity=similarity, fluency=fluency, joint=joint
-    )
+    result = dict(accuracy=accuracy, similarity=similarity, fluency=fluency, joint=joint)
     if aggregate:
         return {k: float(np.mean(v)) for k, v in result.items()}
     return result
@@ -355,9 +334,7 @@ def load_model(
             model.cuda()
     if tokenizer is None:
         if model_name is None:
-            raise ValueError(
-                "Either tokenizer or model_name should be provided"
-            )
+            raise ValueError("Either tokenizer or model_name should be provided")
         tokenizer = AutoTokenizer.from_pretrained(model_name)
     return model, tokenizer
 
@@ -378,10 +355,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        default="",
-        help="Directory where to save the results",
+        "--output_dir", type=str, default="", help="Directory where to save the results",
     )
     args = parser.parse_args()
 
@@ -395,9 +369,7 @@ if __name__ == "__main__":
         "SkolkovoInstitute/rubert-base-corruption-detector", use_cuda=True
     )
 
-    inputs = pd.read_csv("russian_data/test.tsv", sep="\t")[
-        "toxic_comment"
-    ].values
+    inputs = pd.read_csv("russian_data/test.tsv", sep="\t")["toxic_comment"].values
 
     os.makedirs("output_dir", exist_ok=True)
 

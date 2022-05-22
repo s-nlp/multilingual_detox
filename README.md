@@ -4,13 +4,13 @@ by [Daniil Moskovskiy](mailto:daniil.moskovskiy@skoltech.ru), [Daryna Dementieva
 
 ## Setup
 
-**Step 1: Install dependencies**
+**Step $1$: Install dependencies**
 
 ```
 pip install -r requirements.txt
 ```
 
-**Step 2: Run Experiments**
+**Step $2$: Run Experiments**
 
 Multilingual setup:
 
@@ -28,13 +28,13 @@ Cross-lingual setup:
 ```
 python mt5_trainer.py
     --batch_size 16 \
-    --use_russian 1 \
+    --use_russian 0 \
     --max_steps 40000 \
     --learning_rate 1e-5 \
     --output_dir trained_models 
 ```
 
-**Step 3: Generate detoxifications for test data**
+**Step $3$: Generate detoxifications for test data**
 
 For Russian use `test.tsv` file from `data\russian_data\`. For English use `data\english_data\test_toxic_parallel.txt`.
 
@@ -54,6 +54,65 @@ python inference.py \
     --model_path mbarts\mbart_10000_EN_RU \
     --language EN
 ```
+
+
+**Step $4$**
+
+Calculate metrics. Example for Russian:
+
+```
+python evaluate_ru.py \
+    --result_filename results_en \
+    --input_dir mbarts/mbart_10000_EN_RU \
+    --output_dir mbarts \
+```
+
+
+## Data
+
+For English we use ParaDetox parallel detoxification corpora, please, cite the original [paper](https://aclanthology.org/2022.acl-long.469/) and proceed to the original ParaDetox [repository](https://github.com/skoltech-nlp/paradetox) for details. For Russian we use RuDetox corpora from [RuSSE Detoxification Competition](https://russe.nlpub.org/2022/tox/), please cite the competition if you are going to use the data.
+
+Citation for English:
+```
+@inproceedings{logacheva-etal-2022-paradetox,
+    title = "{P}ara{D}etox: Detoxification with Parallel Data",
+    author = "Logacheva, Varvara  and
+      Dementieva, Daryna  and
+      Ustyantsev, Sergey  and
+      Moskovskiy, Daniil  and
+      Dale, David  and
+      Krotova, Irina  and
+      Semenov, Nikita  and
+      Panchenko, Alexander",
+    booktitle = "Proceedings of the 60th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = may,
+    year = "2022",
+    address = "Dublin, Ireland",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2022.acl-long.469",
+    pages = "6804--6818",
+    abstract = "We present a novel pipeline for the collection of parallel data for the detoxification task. We collect non-toxic paraphrases for over 10,000 English toxic sentences. We also show that this pipeline can be used to distill a large existing corpus of paraphrases to get toxic-neutral sentence pairs. We release two parallel corpora which can be used for the training of detoxification models. To the best of our knowledge, these are the first parallel datasets for this task.We describe our pipeline in detail to make it fast to set up for a new language or domain, thus contributing to faster and easier development of new parallel resources.We train several detoxification models on the collected data and compare them with several baselines and state-of-the-art unsupervised approaches. We conduct both automatic and manual evaluations. All models trained on parallel data outperform the state-of-the-art unsupervised models by a large margin. This suggests that our novel datasets can boost the performance of detoxification systems.",
+}
+```
+
+Citation for Russian:
+
+```
+@article{russe2022detoxification,
+  title={RUSSE-2022: Findings of the First Russian Detoxification Task Based on Parallel Corpora},
+  author={Dementieva, Daryna and Nikishina, Irina and Logacheva, Varvara and Fenogenova, Alena and Dale, David and Krotova, Irina and Semenov, Nikita and Shavrina, Tatiana and Panchenko, Alexander},
+  booktitle={Computational Linguistics and Intellectual Technologies},
+  year={2022}
+}
+```
+
+## Results
+
+Main results are depicted in this table below. 
+![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/main_table.png)
+
+Here are some examples of generated text.
+![](https://github.com/skoltech-nlp/multilingual_detox/blob/main/pics/generation.png)
 
 ## Citation
 
