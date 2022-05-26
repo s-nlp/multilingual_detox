@@ -369,9 +369,9 @@ if __name__ == "__main__":
         "SkolkovoInstitute/rubert-base-corruption-detector", use_cuda=True
     )
 
-    inputs = pd.read_csv("russian_data/test.tsv", sep="\t")["toxic_comment"].values
+    inputs = pd.read_csv("data/russian_data/test.tsv", sep="\t")["toxic_comment"].values
 
-    os.makedirs("output_dir", exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
 
     if not os.path.exists(f"{args.output_dir}/{args.result_filename}.md"):
         with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
@@ -390,6 +390,6 @@ if __name__ == "__main__":
         result = evaluate(inputs.tolist(), preds)
         r = f"{args.input_dir}|{result['accuracy']:.3f}|{result['similarity']:.3f}|{result['fluency']:.3f}|{result['joint']:.3f}\n"
 
-        with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
+        with open(f"{args.output_dir}/{args.result_filename}.md", "a") as file:
             file.write(r)
 
