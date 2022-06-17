@@ -188,20 +188,23 @@ def evaluate_cola_relative(
     batch_size=32,
     verbose=False,
     maximum=0,
+    relative_fluency=True
 ):
     target_label = prepare_target_label(model, target_label)
-    original_scores = classify_texts(
-        model,
-        tokenizer,
-        original_texts,
-        batch_size=batch_size,
-        verbose=verbose,
-        target_label=target_label,
-    )
     rewritten_scores = classify_texts(
         model,
         tokenizer,
         rewritten_texts,
+        batch_size=batch_size,
+        verbose=verbose,
+        target_label=target_label,
+    )
+    if not relative_fluency:
+        return rewritten_scores
+    original_scores = classify_texts(
+        model,
+        tokenizer,
+        original_texts,
         batch_size=batch_size,
         verbose=verbose,
         target_label=target_label,
@@ -238,6 +241,7 @@ def evaluate_style_transfer(
     batch_size=32,
     verbose=True,
     aggregate=False,
+    relative_fluency=False,
     style_calibration=None,
     meaning_calibration=None,
     fluency_calibration=None,
@@ -271,6 +275,7 @@ def evaluate_style_transfer(
         original_texts=original_texts,
         batch_size=batch_size,
         verbose=verbose,
+        relative_fluency=relative_fluency,
     )
 
     joint = accuracy * similarity * fluency
