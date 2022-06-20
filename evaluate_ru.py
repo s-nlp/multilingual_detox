@@ -241,7 +241,7 @@ def evaluate_style_transfer(
     batch_size=32,
     verbose=True,
     aggregate=False,
-    relative_fluency=False,
+    relative_fluency=True,
     style_calibration=None,
     meaning_calibration=None,
     fluency_calibration=None,
