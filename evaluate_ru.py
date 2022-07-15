@@ -1,11 +1,12 @@
 import os
+import pickle
 
 import numpy as np
 import pandas as pd
 import torch
 from tqdm.auto import trange
+from sacrebleu import CHRF
 from transformers import (
-    AutoModel,
     AutoModelForSequenceClassification,
     AutoTokenizer,
 )
@@ -34,6 +35,7 @@ def classify_texts(
     target_label=None,
     batch_size=32,
     verbose=False,
+    raw_logits=False
 ):
     target_label = prepare_target_label(model, target_label)
     res = []
@@ -50,11 +52,14 @@ def classify_texts(
         ).to(model.device)
         with torch.no_grad():
             try:
-                preds = (
-                    torch.softmax(model(**inputs).logits, -1)[:, target_label]
-                    .cpu()
-                    .numpy()
-                )
+                logits = model(**inputs).logits
+                if raw_logits:
+                    preds = logits[:, target_label]
+                elif logits.shape[-1] > 1:
+                    preds = torch.softmax(logits, -1)[:, target_label]
+                else:
+                    preds = torch.sigmoid(logits)[:, 0]
+                preds = preds.cpu().numpy()
             except:
                 print(i, i + batch_size)
                 preds = [0] * len(inputs)
@@ -234,7 +239,10 @@ def evaluate_style_transfer(
     meaning_tokenizer,
     cola_model,
     cola_tokenizer,
+    references=None,
     style_target_label=1,
+    meaning_target_label='paraphrase',
+    cola_target_label=1,
     batch_size=32,
     verbose=True,
     aggregate=False,
@@ -254,23 +262,25 @@ def evaluate_style_transfer(
     )
     if verbose:
         print("Meaning evaluation")
-    similarity = evaluate_cosine_similarity(
+    similarity = evaluate_meaning(
         meaning_model,
         meaning_tokenizer,
         original_texts,
         rewritten_texts,
         batch_size=batch_size,
         verbose=verbose,
+        bidirectional=False,
+        target_label=meaning_target_label,
     )
     if verbose:
         print("Fluency evaluation")
-    fluency = evaluate_cola_relative(
+    fluency = evaluate_cola(
         cola_model,
         cola_tokenizer,
-        rewritten_texts=rewritten_texts,
-        original_texts=original_texts,
+        texts=rewritten_texts,
         batch_size=batch_size,
         verbose=verbose,
+        target_label=cola_target_label,
     )
 
     joint = accuracy * similarity * fluency
@@ -296,15 +306,27 @@ def evaluate_style_transfer(
         print(f"Joint score:          {np.mean(joint)}")
 
     result = dict(accuracy=accuracy, similarity=similarity, fluency=fluency, joint=joint)
+
+    if references is not None:
+        chrf_calc = CHRF()
+        result['chrF'] = [chrf_calc.sentence_score(hyp, [ref]).score for hyp, ref in zip(rewritten_texts, references)]
+
     if aggregate:
         return {k: float(np.mean(v)) for k, v in result.items()}
     return result
 
 
-def evaluate(original, rewritten):
+with open(os.path.join(os.path.dirname(__file__), 'data', 'score_calibrations_ru.pkl'), 'rb') as f:
+    style_calibrator = pickle.load(f)
+    content_calibrator = pickle.load(f)
+    fluency_calibrator = pickle.load(f)
+
+
+def evaluate(original, rewritten, references=None):
     return evaluate_style_transfer(
         original_texts=original,
         rewritten_texts=rewritten,
+        references=references,
         style_model=style_model,
         style_tokenizer=style_tokenizer,
         meaning_model=meaning_model,
@@ -313,9 +335,9 @@ def evaluate(original, rewritten):
         cola_tokenizer=cola_tolenizer,
         style_target_label=0,
         aggregate=True,
-        style_calibration=lambda x: rotation_calibration(x, 0.90),
-        meaning_calibration=lambda x: rotation_calibration(x, 1.50),
-        fluency_calibration=lambda x: rotation_calibration(x, 1.15, px=0),
+        style_calibration=lambda x: style_calibrator.predict(x[:, np.newaxis]),
+        meaning_calibration=lambda x: content_calibrator.predict(x[:, np.newaxis]),
+        fluency_calibration=lambda x: fluency_calibrator.predict(x[:, np.newaxis]),
     )
 
 
@@ -325,22 +347,46 @@ def load_model(
     tokenizer=None,
     model_class=AutoModelForSequenceClassification,
     use_cuda=True,
+    use_auth_token=None,
 ):
     if model is None:
         if model_name is None:
             raise ValueError("Either model or model_name should be provided")
-        model = model_class.from_pretrained(model_name)
+        model = model_class.from_pretrained(model_name, use_auth_token=use_auth_token)
         if torch.cuda.is_available() and use_cuda:
             model.cuda()
     if tokenizer is None:
         if model_name is None:
             raise ValueError("Either tokenizer or model_name should be provided")
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, use_auth_token=use_auth_token)
     return model, tokenizer
 
 
-if __name__ == "__main__":
+def run_evaluation(args, inputs, refs, evaluator, input_filename):
+    os.makedirs(args.output_dir, exist_ok=True)
 
+    if not os.path.exists(f"{args.output_dir}/{args.result_filename}.md"):
+        with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
+            file.write(f"| Model name | STA | SIM | FL | J | Ref-ChrF\n")
+
+    with open(f"{args.input_dir}/{input_filename}", "r") as file:
+        preds = file.readlines()
+    preds = [sentence.strip() for sentence in preds]
+
+    assert all(len(x) > 0 for x in inputs)
+    assert all(len(x) > 0 for x in preds)
+    assert all(isinstance(x, str) for x in inputs)
+    assert all(isinstance(x, str) for x in preds)
+
+    result = evaluator(inputs, preds, references=refs)
+    r = f"{args.input_dir}|{result['accuracy']:.3f}|{result['similarity']:.3f}|{result['fluency']:.3f}" \
+        f"|{result['joint']:.3f}|{result['chrF']:.3f}\n"
+
+    with open(f"{args.output_dir}/{args.result_filename}.md", "a") as file:
+        file.write(r)
+
+
+if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
         "--result_filename",
@@ -357,39 +403,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output_dir", type=str, default="", help="Directory where to save the results",
     )
+    parser.add_argument('-t', "--token", help="huggingface_token", default=None)
     args = parser.parse_args()
 
     style_model, style_tokenizer = load_model(
-        "SkolkovoInstitute/russian_toxicity_classifier", use_cuda=True
+        "SkolkovoInstitute/russian_toxicity_classifier", use_cuda=True, use_auth_token=args.token
     )
     meaning_model, meaning_tokenizer = load_model(
-        "cointegrated/LaBSE-en-ru", use_cuda=True, model_class=AutoModel
+        "SkolkovoInstitute/rubert-base-cased-conversational-paraphrase-v1", use_cuda=True, use_auth_token=args.token
     )
     cola_model, cola_tolenizer = load_model(
-        "SkolkovoInstitute/rubert-base-corruption-detector", use_cuda=True
+        "SkolkovoInstitute/ruRoberta-large-RuCoLa-v1", use_cuda=True, use_auth_token=args.token
     )
 
-    inputs = pd.read_csv("russian_data/test.tsv", sep="\t")["toxic_comment"].values
+    inputs = pd.read_csv("data/russian_data/test.tsv", sep="\t")["toxic_comment"].to_list()
+    with open('data/russian_data/test_references.txt', 'r') as f:
+        refs = [line.strip() for line in f.readlines()]
 
-    os.makedirs("output_dir", exist_ok=True)
-
-    if not os.path.exists(f"{args.output_dir}/{args.result_filename}.md"):
-        with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
-            file.write(f"| Model name | STA | SIM | FL | J |\n")
-
-    results = []
-    with open(f"{args.input_dir}/results_ru.txt", "r") as file:
-        preds = file.readlines()
-        preds = [sentence.strip() for sentence in preds]
-
-        assert all(len(x) > 0 for x in inputs)
-        assert all(len(x) > 0 for x in preds)
-        assert all(isinstance(x, str) for x in inputs)
-        assert all(isinstance(x, str) for x in preds)
-
-        result = evaluate(inputs.tolist(), preds)
-        r = f"{args.input_dir}|{result['accuracy']:.3f}|{result['similarity']:.3f}|{result['fluency']:.3f}|{result['joint']:.3f}\n"
-
-        with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
-            file.write(r)
-
+    run_evaluation(args, inputs, refs, evaluator=evaluate, input_filename='results_ru.txt')

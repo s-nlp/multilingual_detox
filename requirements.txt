@@ -5,3 +5,4 @@ torch
 sentencepiece
 pandas
 tqdm
+sacrebleu
