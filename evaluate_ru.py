@@ -188,23 +188,20 @@ def evaluate_cola_relative(
     batch_size=32,
     verbose=False,
     maximum=0,
-    relative_fluency=True
 ):
     target_label = prepare_target_label(model, target_label)
-    rewritten_scores = classify_texts(
-        model,
-        tokenizer,
-        rewritten_texts,
-        batch_size=batch_size,
-        verbose=verbose,
-        target_label=target_label,
-    )
-    if not relative_fluency:
-        return rewritten_scores
     original_scores = classify_texts(
         model,
         tokenizer,
         original_texts,
+        batch_size=batch_size,
+        verbose=verbose,
+        target_label=target_label,
+    )
+    rewritten_scores = classify_texts(
+        model,
+        tokenizer,
+        rewritten_texts,
         batch_size=batch_size,
         verbose=verbose,
         target_label=target_label,
@@ -241,7 +238,6 @@ def evaluate_style_transfer(
     batch_size=32,
     verbose=True,
     aggregate=False,
-    relative_fluency=True,
     style_calibration=None,
     meaning_calibration=None,
     fluency_calibration=None,
@@ -275,7 +271,6 @@ def evaluate_style_transfer(
         original_texts=original_texts,
         batch_size=batch_size,
         verbose=verbose,
-        relative_fluency=relative_fluency,
     )
 
     joint = accuracy * similarity * fluency
@@ -374,9 +369,9 @@ if __name__ == "__main__":
         "SkolkovoInstitute/rubert-base-corruption-detector", use_cuda=True
     )
 
-    inputs = pd.read_csv("data/russian_data/test.tsv", sep="\t")["toxic_comment"].values
+    inputs = pd.read_csv("russian_data/test.tsv", sep="\t")["toxic_comment"].values
 
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs("output_dir", exist_ok=True)
 
     if not os.path.exists(f"{args.output_dir}/{args.result_filename}.md"):
         with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
@@ -395,6 +390,6 @@ if __name__ == "__main__":
         result = evaluate(inputs.tolist(), preds)
         r = f"{args.input_dir}|{result['accuracy']:.3f}|{result['similarity']:.3f}|{result['fluency']:.3f}|{result['joint']:.3f}\n"
 
-        with open(f"{args.output_dir}/{args.result_filename}.md", "a") as file:
+        with open(f"{args.output_dir}/{args.result_filename}.md", "w") as file:
             file.write(r)
 
