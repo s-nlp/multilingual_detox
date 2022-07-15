@@ -1,5 +1,7 @@
+import json
 import os
 import random
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -7,7 +9,7 @@ import torch
 from sklearn.model_selection import train_test_split
 
 
-def set_random_seed(seed):
+def set_random_seed(seed: int = 42) -> None:
     random.seed(seed)
     np.random.seed(seed)
     os.environ["PL_GLOBAL_SEED"] = str(seed)
@@ -33,12 +35,46 @@ def fix_tokenizer(tokenizer):
             special_tokens["unk_token"] = token
         if tokenizer.sep_token_id in (None, tokenizer.vocab_size) and "sep" in token:
             special_tokens["sep_token"] = token
-    if (tokenizer.sep_token_id in (None, tokenizer.vocab_size) and "bos_token" in special_tokens
+    if (
+        tokenizer.sep_token_id in (None, tokenizer.vocab_size)
+        and "bos_token" in special_tokens
     ):
         special_tokens["sep_token"] = special_tokens["bos_token"]
     tokenizer.add_special_tokens(special_tokens)
 
     return tokenizer
+
+
+class MT5Dataset(torch.utils.data.Dataset):
+    def __init__(self, data: pd.DataFrame, tokenizer):
+
+        self.data = data
+        self.tokenizer = tokenizer
+
+    def __getitem__(self, idx):
+
+        source = self.tokenizer(
+            self.data[self.data.columns[0]].values[idx],
+            max_length=100,
+            pad_to_max_length=True,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt",
+        )
+        target = self.tokenizer(
+            self.data[self.data.columns[1]].values[idx],
+            max_length=100,
+            pad_to_max_length=True,
+            truncation=True,
+            padding="max_length",
+            return_tensors="pt",
+        )
+        source["labels"] = target["input_ids"]
+
+        return {k: v.squeeze(0) for k, v in source.items()}
+
+    def __len__(self):
+        return self.data.shape[0]
 
 
 class ToxicDataset(torch.utils.data.Dataset):
@@ -50,8 +86,8 @@ class ToxicDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
 
-        self.tokenizer.src_lang = self.data.iloc[idx].prefix
-        self.tokenizer.tgt_lang = self.data.iloc[idx].prefix
+        # self.tokenizer.src_lang = self.data.iloc[idx].prefix
+        # self.tokenizer.tgt_lang = self.data.iloc[idx].prefix
 
         source = self.tokenizer(
             self.data.iloc[idx].toxic_comment,
@@ -126,3 +162,24 @@ def load_only_russian(part="train"):
     rus_data["prefix"] = ["ru_RU" for _ in range(rus_data.shape[0])]
 
     return rus_data
+
+
+def load_config(path: str = "configs/mt5_en_ru"):
+    try:
+        with open(f"{path}", "r") as file:
+            config = json.load(file)
+        return config
+    except:
+        raise FileNotFoundError
+
+
+def load_cross_lin_data(
+    path: str = "data/english_data/detox_en2ru_yandex.tsv", direction: str = "en_ru"
+) -> pd.DataFrame:
+    if direction == "en_ru":
+        dataset = pd.read_csv(path, sep="\t")[["toxic_comment", "neutral_ru"]]
+        dataset.dropna(inplace=True)
+    if direction == "ru_en":
+        dataset = pd.read_csv(path, sep="\t")[["toxic_ru", "neutral_comment"]]
+        dataset.dropna(inplace=True)
+    return dataset

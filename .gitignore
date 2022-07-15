@@ -1,2 +1,3 @@
-__pycache__
-.ipynb_checkpoints
+/saved_models
+/wandb
+/__pycache__
