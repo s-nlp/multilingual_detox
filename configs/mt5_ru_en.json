@@ -1,0 +1,17 @@
+{
+    "data_path" : "data/english_data/detox_en2ru_yandex.tsv",
+    "dir" : "ru_en",
+    "output_dir" : "saved_models/mt5_ru_en",
+    "train_batch_size": 8,
+    "eval_batch_size" : 8,
+    "learning_rate": 0.00005,
+    "max_steps" : 40000,
+    "logging_steps" : 1000,
+    "save_strategy" : "steps",
+    "save_steps" : 5000,
+    "model_name" : "mt5_base_RUtoxic_ENpolite",
+    "model_size" : "base",
+    "seed" : 1337,
+    "gradient_accumulation_steps": 16,
+    "warmup_steps": 100
+}
