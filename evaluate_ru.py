@@ -1,4 +1,5 @@
 import os
+import pickle
 
 import numpy as np
 import pandas as pd
@@ -34,6 +35,7 @@ def classify_texts(
     target_label=None,
     batch_size=32,
     verbose=False,
+    raw_logits=False
 ):
     target_label = prepare_target_label(model, target_label)
     res = []
@@ -51,7 +53,9 @@ def classify_texts(
         with torch.no_grad():
             try:
                 logits = model(**inputs).logits
-                if logits.shape[-1] > 1:
+                if raw_logits:
+                    preds = logits[:, target_label]
+                elif logits.shape[-1] > 1:
                     preds = torch.softmax(logits, -1)[:, target_label]
                 else:
                     preds = torch.sigmoid(logits)[:, 0]
@@ -312,6 +316,12 @@ def evaluate_style_transfer(
     return result
 
 
+with open(os.path.join(os.path.dirname(__file__), 'data', 'score_calibrations_ru.pkl'), 'rb') as f:
+    style_calibrator = pickle.load(f)
+    content_calibrator = pickle.load(f)
+    fluency_calibrator = pickle.load(f)
+
+
 def evaluate(original, rewritten, references=None):
     return evaluate_style_transfer(
         original_texts=original,
@@ -325,6 +335,9 @@ def evaluate(original, rewritten, references=None):
         cola_tokenizer=cola_tolenizer,
         style_target_label=0,
         aggregate=True,
+        style_calibration=lambda x: style_calibrator.predict(x[:, np.newaxis]),
+        meaning_calibration=lambda x: content_calibrator.predict(x[:, np.newaxis]),
+        fluency_calibration=lambda x: fluency_calibrator.predict(x[:, np.newaxis]),
     )
 
 

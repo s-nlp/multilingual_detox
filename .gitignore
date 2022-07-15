@@ -1,10 +1,9 @@
 # Default ignored files
 /shelf/
 /workspace.xml
-# Datasource local storage ignored files
-/../../../../../../../../:\Users\david\YandexDisk\mainwork\skoltech\multilingual_detox\.idea/dataSources/
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/
 .idea/
 .ipynb_checkpoints
+*/.ipynb_checkpoints
