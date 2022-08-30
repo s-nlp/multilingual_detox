@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_steps",
         type=int,
-        default=5_000,
+        default=5000,
         help="maximum learning steps ([1000, 3000, 5000, 10000])",
     )
     parser.add_argument(
@@ -84,12 +84,12 @@ if __name__ == "__main__":
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         evaluation_strategy="steps",
-        logging_steps=1_000,
+        logging_steps=1000,
         max_steps=args.max_steps,
         learning_rate=args.learning_rate,
         seed=42,
         save_strategy="steps",
-        save_stes=1_000,
+        save_steps=1000,
         warmup_steps=args.warmup_steps,
     )
 
