@@ -43,7 +43,7 @@ Example for Russian:
 python inference.py \
     --model_name mbart \
     --model_path mbarts\mbart_10000_EN_RU \
-    --language RU
+    --language ru
 ```
 
 and for English:
@@ -52,7 +52,7 @@ and for English:
 python inference.py \
     --model_name mbart \
     --model_path mbarts\mbart_10000_EN_RU \
-    --language EN
+    --language en
 ```
 
 
