@@ -31,7 +31,7 @@ def paraphrase(
         max_length=max_length,
         min_length=int(0.5 * max_length),
         num_beams=beams,
-        forced_bos_token_id=tokenizer.lang_code_to_id[tokenizer.tgt_lang],
+        #forced_bos_token_id=tokenizer.lang_code_to_id[tokenizer.tgt_lang],
     )
     texts = [tokenizer.decode(r, skip_special_tokens=True) for r in result]
 
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "--model_name",
         type=str,
         required=True,
-        options=["mbart", "mt5"],
+        choices=["mbart", "mt5"],
         help="Specify model type for loading",
     )
     parser.add_argument(
@@ -57,7 +57,7 @@ if __name__ == "__main__":
         "--language",
         type=str,
         required=True,
-        options=["en", "ru"],
+        choices=["en", "ru"],
         help="Specify language for generation",
     )
     args = parser.parse_args()
