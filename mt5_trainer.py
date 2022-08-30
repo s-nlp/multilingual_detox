@@ -51,13 +51,13 @@ if __name__ == "__main__":
     os.environ["WANDB_DISABLED"] = "true"
     os.environ["CUDA_VISIBLE_DEVICES"] = f"{args.n_device}"
 
-    data = load_data(use_russian=bool(args.use_russian))
+    train_data, tune_data = load_data(use_russian=bool(args.use_russian))
     # train_data = load_only_russian(part='train')
     # tune_data = load_only_russian(part='dev')
 
-    train_ids, tune_ids = train_test_split(
-        data.index, test_size=0.01, random_state=args.seed
-    )
+#     train_ids, tune_ids = train_test_split(
+#         data.index, test_size=0.01, random_state=args.seed
+#     )
 
     model = MT5ForConditionalGeneration.from_pretrained("google/mt5-base")
     tokenizer = MT5Tokenizer.from_pretrained("google/mt5-base")
@@ -66,8 +66,8 @@ if __name__ == "__main__":
     device = torch.device("cuda")
     model = model.to(device)
 
-    trainset = ToxicDataset(data.iloc[train_ids], tokenizer)
-    tuneset = ToxicDataset(data.iloc[tune_ids], tokenizer)
+    trainset = ToxicDataset(train_data, tokenizer)
+    tuneset = ToxicDataset(tune_data, tokenizer)
 
     if args.use_russian == 1:
         flag = "EN_RU"
@@ -97,3 +97,6 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
     )
     trainer.train()
+    print("training started")
+    model.save_pretrained(f"{args.output_dir}/mt5_{args.max_steps}_{flag}")
+    tokenizer.save_pretrained(f"{args.output_dir}/mt5_{args.max_steps}_{flag}")
