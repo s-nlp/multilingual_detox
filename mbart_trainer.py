@@ -104,3 +104,4 @@ if __name__ == "__main__":
     print("training started")
     trainer.train()
     model.save_pretrained(f"{args.output_dir}/mbart_{args.max_steps}_{flag}")
+    tokenizer.save_pretrained(f"{args.output_dir}/mbart_{args.max_steps}_{flag}")
